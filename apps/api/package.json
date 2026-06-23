@@ -3,7 +3,6 @@
 	"version": "1.0.0",
 	"description": "Starter API for CS453/553 Client-Server Architectures",
 	"main": "dist/server.js",
-
 	"scripts": {
 		"test": "jest",
 		"dev": "ts-node-dev --respawn --transpile-only src/server.ts",
@@ -20,7 +19,7 @@
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"dotenv": "^17.3.1",
+		"dotenv": "^17.4.2",
 		"express": "^5.2.1",
 		"pg": "^8.20.0"
 	}

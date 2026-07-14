@@ -1,4 +1,4 @@
-# CS453 Project — Checkpoint 1: Core API Structure
+# CS453 Project - Checkpoint 1: Core API Structure
 
 A database backed REST API for managing tasks, built with Express, TypeScript, and PostgreSQL. This is the first checkpoint of the semester project (a small team task/issue tracking system), focused on the task CRUD foundation.
 

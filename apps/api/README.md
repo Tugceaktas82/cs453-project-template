@@ -17,26 +17,43 @@ The starter template already defined a `"test": "jest"` script, but did not incl
 ## Project Structure
 
 ```text
-apps/api/
-├── src/
-│   ├── server.ts              # Express app setup and route mounting
-│   ├── config/
-│   │   ├── env.ts             # Environment variable loader
-│   │   └── .env
-│   ├── db/
-│   │   └── pool.ts            # PostgreSQL connection pool
-│   ├── routes/
-│   │   ├── taskRoutes.ts      # Thin route handlers for /tasks
-│   │   └── taskRoutes.test.ts # Automated tests (Jest + Supertest)
-│   └── services/
-│       └── taskService.ts     # Database query logic
-├── jest.config.js
-├── package.json
-└── tsconfig.json
-
-database/
-└── schema.sql                 # Database schema (tasks table, trigger)
+cs453-project-template/
+├── apps/
+│   ├── api/                        # this checkpoint lives here
+│   │   ├── src/
+│   │   │   ├── server.ts           # Express app setup and route mounting
+│   │   │   ├── config/
+│   │   │   │   ├── env.ts          # Environment variable loader
+│   │   │   │   └── .env
+│   │   │   ├── db/
+│   │   │   │   └── pool.ts         # PostgreSQL connection pool
+│   │   │   ├── routes/
+│   │   │   │   ├── taskRoutes.ts       # Thin route handlers for /tasks
+│   │   │   │   └── taskRoutes.test.ts  # Automated tests (Jest + Supertest)
+│   │   │   └── services/
+│   │   │       └── taskService.ts  # Database query logic
+│   │   ├── jest.config.js
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── tsconfig.json
+│   │   └── README.md               # you are here
+│   └── client/                     # simple browser client (not part of checkpoint 1)
+│       └── README.md
+├── database/
+│   ├── schema.sql                  # Database schema (tasks table, trigger)
+│   └── README.md                   # Docker/DB setup notes
+├── docs/                           # architecture documentation
+├── scripts/                        # dev utility scripts
+├── docker-compose.yml              # starts the PostgreSQL container
+├── .env.example
+├── .gitignore
+├── .nvmrc
+├── package.json                    # root-level scripts (db:start, db:stop, db:reset)
+├── package-lock.json
+└── README.md                       # top-level project overview
 ```
+
+> Only `apps/api/` and `database/schema.sql` are relevant to Checkpoint 1. The `apps/client/` folder, `docs/`, and `scripts/` are part of the overall semester project template and will be used in later checkpoints.
 
 ## Prerequisites
 

@@ -1,14 +1,18 @@
 # CS453 Project — Checkpoint 1: Core API Structure
 
-A database-backed REST API for managing tasks, built with Express, TypeScript, and PostgreSQL. This is the first checkpoint of the semester project (a small team task/issue tracking system), focused on the task CRUD foundation.
+A database backed REST API for managing tasks, built with Express, TypeScript, and PostgreSQL. This is the first checkpoint of the semester project (a small team task/issue tracking system), focused on the task CRUD foundation.
 
 ## Features
 
-- **Express + TypeScript:** Strongly typed REST API.
-- **PostgreSQL Persistence:** Tasks are stored in a real PostgreSQL database (no in-memory data).
-- **Refactored Structure:** Routes, business logic, and database access are separated into distinct layers.
-- **Validation & Error Handling:** Proper 400/404/500 responses with JSON error messages.
-- **Automated Tests:** Jest + Supertest cover all CRUD routes and error cases.
+* **Express + TypeScript:** Strongly typed REST API.
+* **PostgreSQL Persistence:** Tasks are stored in a real PostgreSQL database (no in memory data).
+* **Refactored Structure:** Routes, business logic, and database access are separated into distinct layers.
+* **Validation & Error Handling:** Proper 400/404/500 responses with JSON error messages.
+* **Automated Tests:** Jest + Supertest cover all CRUD routes and error cases.
+
+## Note on dependencies
+
+The starter template already defined a `"test": "jest"` script, but did not include the `jest` package itself (or `supertest`, `ts-jest`, and their type definitions). These were added on top of the template so the test script actually works and the checkpoint's automated testing requirement could be met. Everything else in `package.json` matches the original template.
 
 ## Project Structure
 
@@ -36,8 +40,8 @@ database/
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [Docker](https://www.docker.com/) (for running PostgreSQL locally)
+* [Node.js](https://nodejs.org/) (v18 or higher recommended)
+* [Docker](https://www.docker.com/) (for running PostgreSQL locally)
 
 ## Getting Started
 
@@ -94,7 +98,13 @@ Run the schema file against the running container:
 docker exec -i cs453-postgres psql -U postgres -d cs453 < database/schema.sql
 ```
 
-This creates the `tasks` table (and a trigger that automatically updates `updated_at` on every update). The script is safe to re-run.
+Alternatively, if `psql` is installed locally, you can run it directly against the exposed port:
+
+```bash
+psql postgresql://postgres:postgres@localhost:5432/cs453 -f database/schema.sql
+```
+
+Both commands create the `tasks` table (and a trigger that automatically updates `updated_at` on every update). Either script is safe to re run.
 
 ### 5. Start the server
 
@@ -190,26 +200,22 @@ curl -X DELETE http://localhost:3000/tasks/1
 
 ## Reflection Questions
 
-**1. What is the difference between an in-memory API and a database-backed API?**
+**1. What is the difference between an in memory API and a database backed API?**
 
-An in-memory API (like our previous lab) stores data in a plain JavaScript array or object that lives only in the server's RAM while the process is running. The moment the server restarts, all data is lost. A database-backed API, like this one, persists data in PostgreSQL, a separate process with its own storage on disk. This means the data survives server restarts, can be shared across multiple server instances, and benefits from database features like transactions, constraints, and indexing. The trade-off is added complexity: we now need a connection pool, SQL queries, and error handling for database failures, instead of simple array operations.
+In our previous lab the API just kept everything in a plain JavaScript array while the server was running. The second you restart the server all that data disappears because it only ever lived in RAM. This project is different because tasks actually get saved in PostgreSQL, which is its own separate process with real storage on disk. That means the data is still there after a restart, and if we ever had multiple server instances they could all share the same data. We also get things like constraints and indexing for free from the database. The downside is it's more work to set up, now we need a connection pool and actual SQL queries instead of just pushing to an array, and we have to think about what happens if the database call fails.
 
 **2. Why is it useful to separate routes, services, and database logic?**
 
-Separating these layers follows the principle of separation of concerns. Routes (`taskRoutes.ts`) are responsible only for handling HTTP concerns: parsing the request, validating input shape, and choosing the right status code. Services (`taskService.ts`) contain the actual business/data logic, in this case the SQL queries themselves. This separation makes the code easier to test (we can test the service logic independently of HTTP), easier to maintain (a change to the database schema only affects the service layer), and easier to reason about, since each file has a single, clear responsibility instead of one large file mixing HTTP handling with raw SQL.
+Basically it keeps each part of the code doing one job instead of everything being mixed together. The routes file (`taskRoutes.ts`) only worries about the HTTP side of things, reading the request, checking if the input looks right, and picking the correct status code to send back. The service file (`taskService.ts`) is where the actual SQL queries live, so that's the part that knows how tasks are actually stored. Splitting it up this way makes it a lot easier to test the database logic on its own without needing to spin up the whole server. It also means if the schema changes later we really only need to touch the service file. Honestly it just makes the code less confusing to read since you're not scrolling through one giant file trying to figure out where the HTTP stuff ends and the SQL starts.
 
 **3. What HTTP status codes did you use, and why?**
 
-- **200 OK** — for successful GET, PATCH, and DELETE operations, where the request succeeded and a normal response body is returned.
-- **201 Created** — for successful POST requests, since a new resource (a task) was created on the server.
-- **400 Bad Request** — when the client sends invalid input, such as creating a task without a `title`, or providing a non-numeric task ID.
-- **404 Not Found** — when a task with the given ID does not exist in the database, or when a completely unknown route is requested.
-- **500 Internal Server Error** — when something unexpected fails on the server side, such as a database connection issue, which is caught in a `try/catch` block so the server doesn't crash.
+200 OK is used for GET, PATCH, and DELETE when everything goes fine and there's a normal response to send back. 201 Created is only for POST, since that's the one creating something new on the server. 400 Bad Request shows up when the client sends something invalid, like leaving out the title when creating a task, or putting something that isn't a number where a task id should be. 404 Not Found happens when the task id is a valid number but there's just no task with that id in the database, or if someone hits a route that doesn't exist at all. And 500 Internal Server Error is the fallback for when something breaks on our end, like the database connection dropping, which gets caught in a try/catch so the whole server doesn't crash.
 
 **4. What happens when a client requests a task ID that does not exist?**
 
-The route handler first parses the ID from the URL parameter. If it's a valid number, it calls `taskService.getTaskById(id)` (or the corresponding update/delete method), which runs a `SELECT`/`UPDATE`/`DELETE` query filtered by that ID. If no row matches, the service returns `null` (for `GET`/`PATCH`) or a `rowCount` of `0` (for `DELETE`). The route handler checks for this and responds with a `404` status code and a JSON body like `{ "error": "Task not found" }`, rather than crashing or returning an empty `200` response.
+First the route pulls the id out of the URL and checks that it's actually a valid number. Assuming it is, it calls something like `taskService.getTaskById(id)` (or the update/delete equivalent), which runs a query filtered by that id. If nothing matches, the service just returns null for GET and PATCH, or a rowCount of 0 for DELETE. The route then checks for that and sends back a 404 with a small JSON error like `{ "error": "Task not found" }` instead of just crashing or sending back an empty 200 like nothing happened.
 
 **5. What was the hardest part of connecting the API to PostgreSQL?**
 
-The trickiest part was making sure the `PATCH` endpoint correctly handled partial updates. Since a client might only send one field (e.g., just `status`), the SQL `UPDATE` query needs to be built dynamically, only including the columns that were actually provided, while still using parameterized queries (`$1`, `$2`, ...) to prevent SQL injection. Getting the query string and the values array to stay in sync, especially with the increasing parameter index, took careful attention. Another challenge was making sure the Express app could be properly tested with Supertest, which required exporting the `app` instance separately from the `app.listen()` call so that tests don't try to open a real network port.
+Honestly the PATCH endpoint gave me the most trouble. Since someone might only send one field, like just `status`, the UPDATE query can't be hardcoded with all three columns every time, it has to be built dynamically so it only touches whatever fields were actually sent. On top of that I still needed to use parameterized queries ($1, $2, etc) instead of just plugging values straight into the string, otherwise it's wide open to SQL injection. Keeping the query string and the values array lined up correctly, especially once the parameter index keeps climbing as more fields get added, took a few tries to get right. The other annoying part was getting the Express app to actually work with Supertest for testing, which meant I had to export the app separately from the app.listen() call so the tests don't try to open a real port every time.

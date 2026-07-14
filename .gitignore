@@ -11,6 +11,7 @@ coverage/
 *.js
 *.js.map
 *.d.ts
+!jest.config.js
 
 # TypeScript cache
 *.tsbuildinfo

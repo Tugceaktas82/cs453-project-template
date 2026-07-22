@@ -45,7 +45,7 @@ export const authService = {
         const token = jwt.sign(
             { userId: user.id },
             env.jwtSecret,
-            { expiresIn: env.jwtExpiresIn }
+            { expiresIn: env.jwtExpiresIn as any } // 👈 Buraya 'as any' eklendi
         );
 
         return {

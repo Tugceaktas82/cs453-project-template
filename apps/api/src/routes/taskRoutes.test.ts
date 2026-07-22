@@ -1,74 +1,95 @@
-//src/routes/taskRoutes.test.ts
 import request from "supertest";
 import app from "../server";
 import { pool } from "../db/pool";
 
 describe("Task API Routes", () => {
-  // shared across tests since they run in sequence and depend on
-  // the id created in the "POST /tasks creates a task" test
-  let createdTaskId: number;
+    let token: string;
+    let createdTaskId: number;
 
-  // close the db connection pool after all tests finish,
-  // otherwise Jest hangs waiting for open connections
-  afterAll(async () => {
-    await pool.end();
-  });
+    beforeAll(async () => {
+        // Test kullanıcısı oluştur ve token al
+        await pool.query("DELETE FROM users WHERE email = 'tasktest@test.com'");
+        const reg = await request(app)
+            .post("/auth/register")
+            .send({ email: "tasktest@test.com", password: "password123" });
+        token = (await request(app)
+            .post("/auth/login")
+            .send({ email: "tasktest@test.com", password: "password123" })).body.token;
+    });
 
-  test("GET /tasks returns a list", async () => {
-    const res = await request(app).get("/tasks");
-    expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-  });
+    afterAll(async () => {
+        await pool.query("DELETE FROM users WHERE email = 'tasktest@test.com'");
+        await pool.end();
+    });
 
-  test("POST /tasks creates a task", async () => {
-    const res = await request(app)
-      .post("/tasks")
-      .send({ title: "Write checkpoint tests", description: "Add jest + supertest" });
+    test("GET /tasks returns a list", async () => {
+        const res = await request(app)
+            .get("/tasks")
+            .set("Authorization", `Bearer ${token}`);
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+    });
 
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty("id");
-    expect(res.body.title).toBe("Write checkpoint tests");
-    expect(res.body.status).toBe("todo"); // default status when not provided
+    test("POST /tasks creates a task", async () => {
+        const res = await request(app)
+            .post("/tasks")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ title: "Test task", description: "Test description" });
+        expect(res.statusCode).toBe(201);
+        expect(res.body).toHaveProperty("id");
+        expect(res.body.title).toBe("Test task");
+        expect(res.body.status).toBe("todo");
+        createdTaskId = res.body.id;
+    });
 
-    createdTaskId = res.body.id; // save for later tests
-  });
+    test("POST /tasks without title returns 400", async () => {
+        const res = await request(app)
+            .post("/tasks")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ description: "missing title" });
+        expect(res.statusCode).toBe(400);
+        expect(res.body).toHaveProperty("error");
+    });
 
-  test("POST /tasks without title returns 400", async () => {
-    const res = await request(app)
-      .post("/tasks")
-      .send({ description: "missing title" });
+    test("GET /tasks/:id returns one task", async () => {
+        const res = await request(app)
+            .get(`/tasks/${createdTaskId}`)
+            .set("Authorization", `Bearer ${token}`);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.id).toBe(createdTaskId);
+    });
 
-    expect(res.statusCode).toBe(400);
-    expect(res.body).toHaveProperty("error");
-  });
+    test("GET /tasks/:id with unknown id returns 404", async () => {
+        const res = await request(app)
+            .get("/tasks/999999")
+            .set("Authorization", `Bearer ${token}`);
+        expect(res.statusCode).toBe(404);
+        expect(res.body).toHaveProperty("error");
+    });
 
-  test("GET /tasks/:id returns one task", async () => {
-    const res = await request(app).get(`/tasks/${createdTaskId}`);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.id).toBe(createdTaskId);
-  });
+    test("PATCH /tasks/:id updates a task", async () => {
+        const res = await request(app)
+            .patch(`/tasks/${createdTaskId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ status: "in-progress" });
+        expect(res.statusCode).toBe(200);
+        expect(res.body.status).toBe("in-progress");
+    });
 
-  test("GET /tasks/:id with unknown id returns 404", async () => {
-    const res = await request(app).get("/tasks/999999");
-    expect(res.statusCode).toBe(404);
-    expect(res.body).toHaveProperty("error");
-  });
+    test("DELETE /tasks/:id deletes a task", async () => {
+        const res = await request(app)
+            .delete(`/tasks/${createdTaskId}`)
+            .set("Authorization", `Bearer ${token}`);
+        expect(res.statusCode).toBe(200);
 
-  test("PATCH /tasks/:id updates a task", async () => {
-    const res = await request(app)
-      .patch(`/tasks/${createdTaskId}`)
-      .send({ status: "in-progress" });
+        const checkRes = await request(app)
+            .get(`/tasks/${createdTaskId}`)
+            .set("Authorization", `Bearer ${token}`);
+        expect(checkRes.statusCode).toBe(404);
+    });
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe("in-progress");
-  });
-
-  test("DELETE /tasks/:id deletes a task", async () => {
-    const res = await request(app).delete(`/tasks/${createdTaskId}`);
-    expect(res.statusCode).toBe(200);
-
-    // confirm it's really gone
-    const checkRes = await request(app).get(`/tasks/${createdTaskId}`);
-    expect(checkRes.statusCode).toBe(404);
-  });
+    test("GET /tasks without token returns 401", async () => {
+        const res = await request(app).get("/tasks");
+        expect(res.statusCode).toBe(401);
+    });
 });

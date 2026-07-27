@@ -1,17 +1,20 @@
 -- ─── USERS ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
+    name          TEXT NOT NULL,
     email         TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'user',
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─── PROJECTS ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS projects (
-    id         SERIAL PRIMARY KEY,
-    name       TEXT NOT NULL,
-    owner_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id          SERIAL PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT,
+    owner_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─── PROJECT MEMBERS ─────────────────────────────────────

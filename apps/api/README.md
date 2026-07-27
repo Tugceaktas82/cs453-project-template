@@ -1,15 +1,10 @@
-# CS453 Project — Checkpoint 2: Data Model, Authentication, and Authorization
+# CS453 Project - Checkpoint 2 - Checkpoint 2 - Data Model, Authentication, and Authorization
 
-This checkpoint builds on the task API from Checkpoint 1 and turns it into a real multi-user system. Users can now register, log in, create projects, and manage tasks. Each user can only see and modify the resources they actually own or belong to.
+This checkpoint expands the task API from Checkpoint 1 into a multi-user system. Users can register, log in, create projects, and manage tasks. Each user can only see and change the things they own or are part of.
 
-## What Was Added
+## What Changed Since Checkpoint 1
 
-- User registration and login with hashed passwords
-- JWT-based authentication for protected routes
-- Projects with ownership and membership
-- Tasks linked to projects and assignable to users
-- Authorization rules so users only access their own data
-- 23 automated tests covering all new and existing behavior
+Added user registration and login with bcrypt password hashing. Added JWT tokens for authentication. Added projects with ownership rules. Tasks can now be linked to a project and assigned to a user. Added an admin role with access to user management routes. The API now returns correct 401, 403, and 404 responses depending on the situation. There are 31 automated tests total.
 
 ## Project Structure
 
@@ -23,30 +18,31 @@ apps/api/
 │   ├── db/
 │   │   └── pool.ts
 │   ├── middleware/
-│   │   └── authenticate.ts
+│   │   ├── authenticate.ts
+│   │   └── authorize.ts
 │   ├── routes/
 │   │   ├── authRoutes.ts
 │   │   ├── authRoutes.test.ts
 │   │   ├── projectRoutes.ts
 │   │   ├── projectRoutes.test.ts
 │   │   ├── taskRoutes.ts
-│   │   └── taskRoutes.test.ts
+│   │   ├── taskRoutes.test.ts
+│   │   ├── userRoutes.ts
+│   │   └── userRoutes.test.ts
 │   └── services/
 │       ├── authService.ts
 │       ├── projectService.ts
-│       └── taskService.ts
+│       ├── taskService.ts
+│       └── userService.ts
 ├── jest.config.js
 ├── package.json
-├── package-lock.json
-├── README.md
 └── tsconfig.json
 
 database/
-├──  schema.sql
-└──  README.md
+└── schema.sql
 ```
 
-## Setup
+## How to Run
 
 ### 1. Install dependencies
 
@@ -55,135 +51,150 @@ cd apps/api
 npm install
 ```
 
-### 2. Create the .env file
+### 2. Set up environment variables
 
-Create `src/config/.env` with the following:
+Create a file at src/config/.env with the following:
 
 ```env
 PORT=3000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cs453
-JWT_SECRET=supersecretkey123changeme
+JWT_SECRET=replace-this-with-a-secure-secret
 JWT_EXPIRES_IN=7d
 ```
 
+An example file is also included at .env.example in the project root.
+
 ### 3. Start the database
 
-From the project root:
+Run this from the project root:
 
 ```bash
 npm run db:start
 ```
 
-### 4. Run the schema
+### 4. Create the tables
 
 ```bash
 docker exec -i cs453-postgres psql -U postgres -d cs453 < database/schema.sql
 ```
 
-This creates the `users`, `projects`, `project_members`, and `tasks` tables.
+This creates the users, projects, project_members, and tasks tables.
 
-### 5. Start the server
+### 5. Create an admin account
+
+Admin accounts cannot be created through the register endpoint. The role is always set to "user" on registration. To create an admin, insert one directly into the database:
+
+```bash
+docker exec -i cs453-postgres psql -U postgres -d cs453 << 'SQL'
+INSERT INTO users (name, email, password_hash, role)
+VALUES (
+  'Admin',
+  'admin@example.com',
+  '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+  'admin'
+);
+SQL
+```
+
+The password for that hash is "password". Replace it with your own bcrypt hash if needed.
+
+### 6. Start the server
 
 ```bash
 cd apps/api
 npm run dev
 ```
 
-### 6. Run the tests
+The server runs at http://localhost:3000.
 
-Make sure the database is running first, then:
+### 7. Run the tests
+
+Make sure the database container is running first, then:
 
 ```bash
 cd apps/api
 npm test
 ```
 
-All 23 tests should pass.
+All 31 tests should pass.
 
-## API Routes
+## Routes
 
-### Public (no token needed)
+### Public routes
 
-| Method | Route | Description |
+| Method | Route | What it does |
 |--------|-------|-------------|
 | POST | /auth/register | Create a new account |
-| POST | /auth/login | Log in and get a JWT token |
-| GET | /health | Check if the server is up |
+| POST | /auth/login | Log in and get a token |
+| GET | /health | Check if server is up |
 | GET | /db-health | Check database connection |
 
-### Protected (requires Authorization header)
+### Protected routes (token required)
 
-| Method | Route | Description |
+| Method | Route | What it does |
 |--------|-------|-------------|
-| GET | /tasks | Get all tasks you can see |
+| GET | /tasks | Get tasks you can see |
 | POST | /tasks | Create a task |
 | GET | /tasks/:id | Get one task |
 | PATCH | /tasks/:id | Update a task |
 | DELETE | /tasks/:id | Delete a task |
-| GET | /projects | Get all your projects |
+| GET | /projects | Get your projects |
 | POST | /projects | Create a project |
 | GET | /projects/:id | Get one project |
-| PATCH | /projects/:id | Update a project (owner only) |
-| DELETE | /projects/:id | Delete a project (owner only) |
+| PATCH | /projects/:id | Update a project (owner or admin only) |
+| DELETE | /projects/:id | Delete a project (owner or admin only) |
 | POST | /projects/:id/members | Add a member (owner only) |
 
-## How Authentication Works
+### Admin only routes
 
-Register to create an account, then log in to get a token:
+| Method | Route | What it does |
+|--------|-------|-------------|
+| GET | /users | Get all users |
+| GET | /users/:id | Get one user |
+
+## How to Register and Log In
 
 ```bash
 curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
+  -d '{"name":"Jane Doe","email":"jane@example.com","password":"password123"}'
 
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
+  -d '{"email":"jane@example.com","password":"password123"}'
 ```
 
-The login response includes a token:
+The login response includes a token and basic user info:
 
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": { "id": 1, "email": "user@example.com" }
+  "user": { "id": 1, "name": "Jane Doe", "email": "jane@example.com", "role": "user" }
 }
 ```
 
-Pass the token in the Authorization header for all protected routes:
+## How to Use the Token
+
+Add it to the Authorization header on any protected request:
 
 ```bash
 curl http://localhost:3000/tasks \
   -H "Authorization: Bearer <your-token>"
 ```
 
+## Access Control
+
+Any logged in user can create projects and tasks. A user can only update or delete their own project. Only the project owner can add members. Admin users can update or delete any project and can access the user list. A regular user hitting an admin route gets 403. A request with no token or a bad token gets 401.
+
 ## Database Schema
 
 ```sql
-users           (id, email, password_hash, created_at)
-projects        (id, name, owner_id, created_at)
+users           (id, name, email, password_hash, role, created_at)
+projects        (id, name, description, owner_id, created_at)
 project_members (project_id, user_id)
-tasks           (id, title, description, status,
-                 project_id, assigned_to,
-                 created_at, updated_at)
+tasks           (id, title, description, status, project_id, assigned_to, created_at, updated_at)
 ```
 
-## Design Notes
+## Reflection Answers
 
-**Authentication vs Authorization**
-
-Authentication is just verifying who you are. When you log in with your email and password, the server checks the hash in the database and gives you a signed JWT. After that, every request includes that token so the server knows who is making it. Authorization is a separate step that
-happens after — it checks whether you are actually allowed to do what you are trying to do. Logging in doesn't mean you can touch everyone else's projects.
-
-**Password hashing**
-
-Passwords are hashed with bcrypt before being stored. The plain text password never gets saved anywhere. This means if the database gets leaked, nobody can just read the passwords out of it. Bcrypt is also intentionally slow to compute, which makes brute force attacks harder.
-
-**JWT tokens**
-
-The token contains the user's ID and an expiry time, signed with a secret key. The server doesn't need to look up the user in the database on every request — it just verifies the signature. If the signature checks out, the token is valid and `req.userId` gets set in the
-authenticate middleware for the rest of the route to use.
-
-**Ownership and membership**
-
-Project updates and deletes use `WHERE id = $1 AND owner_id = $2` in the SQL query so only the owner can modify their own projects. Task and project visibility uses a JOIN on `project_members` so users only see tasks from projects they belong to. The `userId` from the token gets passed into every service call to keep this consistent.
+See [answers.md](./answers.md).

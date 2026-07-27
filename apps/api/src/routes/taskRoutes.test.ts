@@ -2,24 +2,30 @@ import request from "supertest";
 import app from "../server";
 import { pool } from "../db/pool";
 
-describe("Task API Routes", () => {
+describe("Task Routes", () => {
     let token: string;
     let createdTaskId: number;
 
     beforeAll(async () => {
-        // Test kullanıcısı oluştur ve token al
         await pool.query("DELETE FROM users WHERE email = 'tasktest@test.com'");
-        const reg = await request(app)
+        await request(app)
             .post("/auth/register")
-            .send({ email: "tasktest@test.com", password: "password123" });
-        token = (await request(app)
+            .send({ name: "Task Tester", email: "tasktest@test.com", password: "password123" });
+        const res = await request(app)
             .post("/auth/login")
-            .send({ email: "tasktest@test.com", password: "password123" })).body.token;
+            .send({ email: "tasktest@test.com", password: "password123" });
+        token = res.body.token;
     });
 
     afterAll(async () => {
         await pool.query("DELETE FROM users WHERE email = 'tasktest@test.com'");
         await pool.end();
+    });
+
+    test("GET /tasks without token returns 401", async () => {
+        const res = await request(app).get("/tasks");
+        expect(res.statusCode).toBe(401);
+        expect(res.body).toHaveProperty("error");
     });
 
     test("GET /tasks returns a list", async () => {
@@ -86,10 +92,5 @@ describe("Task API Routes", () => {
             .get(`/tasks/${createdTaskId}`)
             .set("Authorization", `Bearer ${token}`);
         expect(checkRes.statusCode).toBe(404);
-    });
-
-    test("GET /tasks without token returns 401", async () => {
-        const res = await request(app).get("/tasks");
-        expect(res.statusCode).toBe(401);
     });
 });

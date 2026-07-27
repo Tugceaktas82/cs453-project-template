@@ -5,22 +5,22 @@ const router = Router();
 
 // POST /auth/register
 router.post("/register", async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+    if (!name || typeof name !== "string" || name.trim() === "") {
+        return res.status(400).json({ error: "Name is required" });
     }
 
-    if (typeof email !== "string" || !email.includes("@")) {
-        return res.status(400).json({ error: "Invalid email format" });
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+        return res.status(400).json({ error: "Valid email is required" });
     }
 
-    if (typeof password !== "string" || password.length < 6) {
+    if (!password || typeof password !== "string" || password.length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
     try {
-        const user = await authService.register(email, password);
+        const user = await authService.register(name, email, password);
         res.status(201).json(user);
     } catch (error: any) {
         if (error.message === "EMAIL_TAKEN") {

@@ -1,9 +1,10 @@
 import { pool } from "../db/pool";
 
 export const projectService = {
+    // Get all projects the user owns or is a member of
     async getAllProjects(userId: number) {
         const result = await pool.query(
-            `SELECT p.id, p.name, p.owner_id AS "ownerId", p.created_at AS "createdAt"
+            `SELECT p.id, p.name, p.description, p.owner_id AS "ownerId", p.created_at AS "createdAt"
              FROM projects p
              LEFT JOIN project_members pm ON pm.project_id = p.id
              WHERE p.owner_id = $1 OR pm.user_id = $1
@@ -14,9 +15,10 @@ export const projectService = {
         return result.rows;
     },
 
+    // Get one project by id — user must be owner or member
     async getProjectById(id: number, userId: number) {
         const result = await pool.query(
-            `SELECT p.id, p.name, p.owner_id AS "ownerId", p.created_at AS "createdAt"
+            `SELECT p.id, p.name, p.description, p.owner_id AS "ownerId", p.created_at AS "createdAt"
              FROM projects p
              LEFT JOIN project_members pm ON pm.project_id = p.id
              WHERE p.id = $1 AND (p.owner_id = $2 OR pm.user_id = $2)`,
@@ -25,38 +27,65 @@ export const projectService = {
         return result.rows[0] || null;
     },
 
-    async createProject(name: string, ownerId: number) {
+    // Get project by id without membership check (used for 403 vs 404 distinction)
+    async getProjectByIdAdmin(id: number) {
         const result = await pool.query(
-            `INSERT INTO projects (name, owner_id)
-             VALUES ($1, $2)
-             RETURNING id, name, owner_id AS "ownerId", created_at AS "createdAt"`,
-            [name, ownerId]
-        );
-        return result.rows[0];
-    },
-
-    async updateProject(id: number, name: string, userId: number) {
-        const result = await pool.query(
-            `UPDATE projects
-             SET name = $1
-             WHERE id = $2 AND owner_id = $3
-             RETURNING id, name, owner_id AS "ownerId", created_at AS "createdAt"`,
-            [name, id, userId]
+            `SELECT id, name, description, owner_id AS "ownerId", created_at AS "createdAt"
+             FROM projects
+             WHERE id = $1`,
+            [id]
         );
         return result.rows[0] || null;
     },
 
-    async deleteProject(id: number, userId: number) {
+    // Create a new project
+    async createProject(name: string, description: string | undefined, ownerId: number) {
         const result = await pool.query(
-            `DELETE FROM projects
-             WHERE id = $1 AND owner_id = $2`,
-            [id, userId]
+            `INSERT INTO projects (name, description, owner_id)
+             VALUES ($1, $2, $3)
+             RETURNING id, name, description, owner_id AS "ownerId", created_at AS "createdAt"`,
+            [name, description || null, ownerId]
+        );
+        return result.rows[0];
+    },
+
+    // Update a project — only owner or admin can do this
+    async updateProject(id: number, name: string, description: string | undefined, userId: number, userRole: string) {
+        const whereClause = userRole === "admin"
+            ? "WHERE id = $3"
+            : "WHERE id = $3 AND owner_id = $4";
+
+        const values = userRole === "admin"
+            ? [name, description || null, id]
+            : [name, description || null, id, userId];
+
+        const result = await pool.query(
+            `UPDATE projects
+             SET name = $1, description = $2
+             ${whereClause}
+             RETURNING id, name, description, owner_id AS "ownerId", created_at AS "createdAt"`,
+            values
+        );
+        return result.rows[0] || null;
+    },
+
+    // Delete a project — only owner or admin can do this
+    async deleteProject(id: number, userId: number, userRole: string) {
+        const whereClause = userRole === "admin"
+            ? "WHERE id = $1"
+            : "WHERE id = $1 AND owner_id = $2";
+
+        const values = userRole === "admin" ? [id] : [id, userId];
+
+        const result = await pool.query(
+            `DELETE FROM projects ${whereClause}`,
+            values
         );
         return (result.rowCount ?? 0) > 0;
     },
 
+    // Add a member to a project — only owner can do this
     async addMember(projectId: number, userId: number, ownerId: number) {
-        // Sadece proje sahibi üye ekleyebilir
         const project = await pool.query(
             "SELECT id FROM projects WHERE id = $1 AND owner_id = $2",
             [projectId, ownerId]

@@ -1,19 +1,17 @@
 import express from "express";
 import { env } from "./config/env";
 import { pool } from "./db/pool";
-import taskRoutes from "./routes/taskRoutes";
 import authRoutes from "./routes/authRoutes";
+import taskRoutes from "./routes/taskRoutes";
 import projectRoutes from "./routes/projectRoutes";
+import userRoutes from "./routes/userRoutes";
 
 const app = express();
 app.use(express.json());
 
 // Health check routes
 app.get("/health", (_req, res) => {
-    res.json({
-        status: "ok",
-        service: "cs453-api",
-    });
+    res.json({ status: "ok", service: "cs453-api" });
 });
 
 app.get("/db-health", async (_req, res) => {
@@ -25,29 +23,26 @@ app.get("/db-health", async (_req, res) => {
             currentTime: result.rows[0].current_time,
         });
     } catch (error) {
-        console.error("Database health check failed:", error);
-        res.status(500).json({
-            status: "error",
-            database: "disconnected",
-        });
+        res.status(500).json({ status: "error", database: "disconnected" });
     }
 });
 
-// Mount routes
+// Routes
 app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
 app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 
-// Catch-all 404 handler
+// 404 handler for unknown routes
 app.use((_req, res) => {
     res.status(404).json({ error: "Route not found" });
 });
 
-// Only start listening when run directly (not during tests)
+// Only start the server when running directly, not during tests
 if (require.main === module) {
     app.listen(env.port, () => {
         console.log(`Server running at http://localhost:${env.port}`);
     });
 }
 
-export default app;
+export default app; 

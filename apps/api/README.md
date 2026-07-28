@@ -36,6 +36,8 @@ apps/api/
 │       └── userService.ts
 ├── jest.config.js
 ├── package.json
+├── package-lock.json
+├── README.md   
 └── tsconfig.json
 
 database/
@@ -197,4 +199,4 @@ tasks           (id, title, description, status, project_id, assigned_to, create
 
 ## Reflection Answers
 
-See [answers.md](./answers.md).
+in [answers.md](./answers.md).

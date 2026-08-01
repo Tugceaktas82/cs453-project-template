@@ -1,7 +1,7 @@
 import { pool } from "../db/pool";
 
 export const projectService = {
-    // Get all projects the user owns or is a member of
+    //Get all projects the user owns or is a member of
     async getAllProjects(userId: number) {
         const result = await pool.query(
             `SELECT p.id, p.name, p.description, p.owner_id AS "ownerId", p.created_at AS "createdAt"
@@ -15,7 +15,7 @@ export const projectService = {
         return result.rows;
     },
 
-    // Get one project by id — user must be owner or member
+    //Get one project by id — user must be owner or member
     async getProjectById(id: number, userId: number) {
         const result = await pool.query(
             `SELECT p.id, p.name, p.description, p.owner_id AS "ownerId", p.created_at AS "createdAt"
@@ -27,7 +27,7 @@ export const projectService = {
         return result.rows[0] || null;
     },
 
-    // Get project by id without membership check (used for 403 vs 404 distinction)
+    //Get project by id without membership check (used for 403 vs 404 distinction)
     async getProjectByIdAdmin(id: number) {
         const result = await pool.query(
             `SELECT id, name, description, owner_id AS "ownerId", created_at AS "createdAt"
@@ -38,7 +38,7 @@ export const projectService = {
         return result.rows[0] || null;
     },
 
-    // Create a new project
+    //Create a new project
     async createProject(name: string, description: string | undefined, ownerId: number) {
         const result = await pool.query(
             `INSERT INTO projects (name, description, owner_id)
@@ -49,7 +49,7 @@ export const projectService = {
         return result.rows[0];
     },
 
-    // Update a project — only owner or admin can do this
+    //Update a project — only owner or admin can do this
     async updateProject(id: number, name: string, description: string | undefined, userId: number, userRole: string) {
         const whereClause = userRole === "admin"
             ? "WHERE id = $3"
@@ -69,7 +69,7 @@ export const projectService = {
         return result.rows[0] || null;
     },
 
-    // Delete a project — only owner or admin can do this
+    //Delete a project — only owner or admin can do this
     async deleteProject(id: number, userId: number, userRole: string) {
         const whereClause = userRole === "admin"
             ? "WHERE id = $1"
@@ -84,7 +84,7 @@ export const projectService = {
         return (result.rowCount ?? 0) > 0;
     },
 
-    // Add a member to a project — only owner can do this
+    //Add a member to a project — only owner can do this
     async addMember(projectId: number, userId: number, ownerId: number) {
         const project = await pool.query(
             "SELECT id FROM projects WHERE id = $1 AND owner_id = $2",

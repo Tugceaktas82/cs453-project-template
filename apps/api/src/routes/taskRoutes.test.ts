@@ -27,7 +27,7 @@ describe("Task Routes", () => {
             .send({ email: "tasktest-other@test.com", password: "password123" });
         otherToken = otherRes.body.token;
 
-        // Tasks require a valid project, so create one owned by the first user
+        //Tasks require a valid project, so create one owned by the first user
         const projectRes = await request(app)
             .post("/projects")
             .set("Authorization", `Bearer ${token}`)

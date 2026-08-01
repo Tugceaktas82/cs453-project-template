@@ -9,7 +9,7 @@ import userRoutes from "./routes/userRoutes";
 const app = express();
 app.use(express.json());
 
-// Health check routes
+//Health check routes
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "cs453-api" });
 });
@@ -27,18 +27,18 @@ app.get("/db-health", async (_req, res) => {
     }
 });
 
-// Routes
+//Routes
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/tasks", taskRoutes);
 app.use("/projects", projectRoutes);
 
-// 404 handler for unknown routes
+//404 handler for unknown routes
 app.use((_req, res) => {
     res.status(404).json({ error: "Route not found" });
 });
 
-// Only start the server when running directly, not during tests
+//Only start the server when running directly, not during tests
 if (require.main === module) {
     app.listen(env.port, () => {
         console.log(`Server running at http://localhost:${env.port}`);

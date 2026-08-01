@@ -53,8 +53,8 @@ export const taskService = {
         return result.rows[0] || null;
     },
 
-    // Get a task by id with no access filtering , used only to distinguish
-    // "task does not exist" (404) from "task exists but you can't touch it" (403).
+    //Get a task by id with no access filtering , used only to distinguish
+    //"task does not exist" (404) from "task exists but you can't touch it" (403).
     async getTaskByIdAdmin(id: number): Promise<Task | null> {
         const result = await pool.query(
             `SELECT id, title, description, status,
@@ -69,8 +69,7 @@ export const taskService = {
         return result.rows[0] || null;
     },
 
-    // A task's project (when given) must exist so tasks can't be silently
-    // attached to a project_id that doesn't exist.
+    //A task's project (when given) must exist so tasks can't be silently attached to a project_id that doesn't exist.
     async projectExists(projectId: number): Promise<boolean> {
         const result = await pool.query(
             "SELECT id FROM projects WHERE id = $1",
@@ -100,10 +99,10 @@ export const taskService = {
         return result.rows[0];
     },
 
-    // Update a task , only someone with access (project owner, project member,
-    // the assignee, or an admin) can modify it. Returns null if the caller is
-    // not permitted to update this task (caller should already have confirmed
-    // the task exists via getTaskByIdAdmin, so null here means "forbidden").
+    //Update a task , only someone with access (project owner, project member,
+    //the assignee, or an admin) can modify it. Returns null if the caller is
+    //not permitted to update this task (caller should already have confirmed
+    //the task exists via getTaskByIdAdmin, so null here means "forbidden").
     async updateTask(
         id: number,
         userId: number,
@@ -171,9 +170,8 @@ export const taskService = {
         return result.rows[0] || null;
     },
 
-    // Delete a task ; same access rule as updateTask. Returns false if the
-    // caller does not have access (caller should confirm existence separately
-    // to distinguish 404 from 403).
+    //Delete a task ; same access rule as updateTask. Returns false if the caller does not have access (caller should confirm existence separately
+    //to distinguish 404 from 403).
     async deleteTask(id: number, userId: number, userRole: string): Promise<boolean> {
         if (userRole === "admin") {
             const result = await pool.query("DELETE FROM tasks WHERE id = $1", [id]);

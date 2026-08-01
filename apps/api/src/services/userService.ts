@@ -1,7 +1,7 @@
 import { pool } from "../db/pool";
 
 export const userService = {
-    // Get all users (admin only)
+    //Get all users (admin only)
     async getAllUsers() {
         const result = await pool.query(
             `SELECT id, name, email, role, created_at AS "createdAt"
@@ -11,7 +11,7 @@ export const userService = {
         return result.rows;
     },
 
-    // Get one user by id
+    //Get one user by id
     async getUserById(id: number) {
         const result = await pool.query(
             `SELECT id, name, email, role, created_at AS "createdAt"

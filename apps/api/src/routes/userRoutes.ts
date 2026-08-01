@@ -5,7 +5,7 @@ import { userService } from "../services/userService";
 
 const router = Router();
 
-// GET /users — admin only
+//GET /users — admin only
 router.get(
     "/",
     authenticate,
@@ -20,7 +20,7 @@ router.get(
     }
 );
 
-// GET /users/:id — admin only
+//GET /users/:id — admin only
 router.get(
     "/:id",
     authenticate,

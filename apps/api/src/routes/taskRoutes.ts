@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(authenticate);
 
-// GET /tasks
+//GET /tasks
 router.get("/", async (req: AuthRequest, res: Response) => {
     try {
         const tasks = await taskService.getAllTasks(req.userId!);
@@ -16,7 +16,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// GET /tasks/:id
+//GET /tasks/:id
 router.get("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -33,7 +33,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// POST /tasks
+//POST /tasks
 router.post("/", async (req: AuthRequest, res: Response) => {
     const { title, description, status, projectId, assignedTo } = req.body;
 
@@ -66,8 +66,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// PATCH /tasks/:id ; only someone with access (project owner, project
-// member, the assignee, or an admin) can update a task
+//PATCH /tasks/:id ; only someone with access (project owner, project member, the assignee, or an admin) can update a task
 router.patch("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -81,7 +80,7 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 
     try {
-        // Distinguish "does not exist" (404) from "exists but not allowed" (403)
+        //Distinguish "does not exist" (404) from "exists but not allowed" (403)
         const existing = await taskService.getTaskByIdAdmin(id);
         if (!existing) {
             return res.status(404).json({ error: "Task not found" });
@@ -110,15 +109,14 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// DELETE /tasks/:id ; only someone with access (project owner, project
-// member, the assignee, or an admin) can delete a task
+//DELETE /tasks/:id ; only someone with access (project owner, project member, the assignee, or an admin) can delete a task
 router.delete("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid task ID format" });
     }
     try {
-        // Distinguish "does not exist" (404) from "exists but not allowed" (403)
+        //Distinguish "does not exist" (404) from "exists but not allowed" (403)
         const existing = await taskService.getTaskByIdAdmin(id);
         if (!existing) {
             return res.status(404).json({ error: "Task not found" });

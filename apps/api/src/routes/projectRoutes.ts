@@ -4,10 +4,10 @@ import { projectService } from "../services/projectService";
 
 const router = Router();
 
-// All project routes require authentication
+//All project routes require authentication
 router.use(authenticate);
 
-// GET /projects
+//GET /projects
 router.get("/", async (req: AuthRequest, res: Response) => {
     try {
         const projects = await projectService.getAllProjects(req.userId!);
@@ -17,7 +17,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// GET /projects/:id
+//GET /projects/:id
 router.get("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -35,7 +35,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// POST /projects
+//POST /projects
 router.post("/", async (req: AuthRequest, res: Response) => {
     const { name, description } = req.body;
 
@@ -55,7 +55,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// PATCH /projects/:id — only owner or admin can update
+//PATCH /projects/:id — only owner or admin can update
 router.patch("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -68,13 +68,13 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 
     try {
-        // Check if project exists at all (no membership filter)
+        //Check if project exists at all (no membership filter)
         const existing = await projectService.getProjectByIdAdmin(id);
         if (!existing) {
             return res.status(404).json({ error: "Project not found" });
         }
 
-        // Try to update — returns null if user is not owner and not admin
+        //Try to update — returns null if user is not owner and not admin
         const project = await projectService.updateProject(
             id,
             name,
@@ -91,7 +91,7 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// DELETE /projects/:id — only owner or admin can delete
+//DELETE /projects/:id , only owner or admin can delete
 router.delete("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -99,13 +99,13 @@ router.delete("/:id", async (req: AuthRequest, res: Response) => {
     }
 
     try {
-        // Check if project exists at all (no membership filter)
+        //Check if project exists at all (no membership filter)
         const existing = await projectService.getProjectByIdAdmin(id);
         if (!existing) {
             return res.status(404).json({ error: "Project not found" });
         }
 
-        // Try to delete — returns false if user is not owner and not admin
+        //Try to delete , returns false if user is not owner and not admin
         const deleted = await projectService.deleteProject(
             id,
             req.userId!,
@@ -120,7 +120,7 @@ router.delete("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// POST /projects/:id/members — only owner can add members
+//POST /projects/:id/members , only owner can add members
 router.post("/:id/members", async (req: AuthRequest, res: Response) => {
     const projectId = parseInt(String(req.params.id), 10);
     if (isNaN(projectId)) {

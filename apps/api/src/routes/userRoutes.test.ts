@@ -7,7 +7,7 @@ describe("User Routes", () => {
     let adminToken: string;
 
     beforeAll(async () => {
-        // Create a regular user
+        //Create a regular user
         await pool.query("DELETE FROM users WHERE email IN ('regular@test.com', 'admin@test.com')");
 
         await request(app)
@@ -18,7 +18,7 @@ describe("User Routes", () => {
             .send({ email: "regular@test.com", password: "password123" });
         userToken = userRes.body.token;
 
-        // Create an admin user directly in the database
+        //Create an admin user directly in the database
         await pool.query(
             `INSERT INTO users (name, email, password_hash, role)
              VALUES ('Admin User', 'admin@test.com', $1, 'admin')

@@ -41,7 +41,8 @@ apps/api/
 └── tsconfig.json
 
 database/
-└── schema.sql
+├── schema.sql
+└── README.md 
 ```
 
 ## How to Run

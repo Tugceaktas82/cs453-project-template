@@ -4,7 +4,6 @@ import { taskService } from "../services/taskService";
 
 const router = Router();
 
-// Tüm route'lar authenticate middleware'i gerektirir
 router.use(authenticate);
 
 // GET /tasks
@@ -42,13 +41,23 @@ router.post("/", async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: "Title is required" });
     }
 
+    if (projectId === undefined || projectId === null || isNaN(parseInt(projectId, 10))) {
+        return res.status(400).json({ error: "A valid projectId is required" });
+    }
+
     try {
+        const projectIdNum = parseInt(projectId, 10);
+        const projectOk = await taskService.projectExists(projectIdNum);
+        if (!projectOk) {
+            return res.status(400).json({ error: "projectId does not refer to an existing project" });
+        }
+
         const newTask = await taskService.createTask(
             title,
             req.userId!,
             description,
             status,
-            projectId,
+            projectIdNum,
             assignedTo
         );
         res.status(201).json(newTask);
@@ -57,7 +66,8 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// PATCH /tasks/:id
+// PATCH /tasks/:id ; only someone with access (project owner, project
+// member, the assignee, or an admin) can update a task
 router.patch("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -71,7 +81,20 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 
     try {
-        const updatedTask = await taskService.updateTask(id, req.userId!, {
+        // Distinguish "does not exist" (404) from "exists but not allowed" (403)
+        const existing = await taskService.getTaskByIdAdmin(id);
+        if (!existing) {
+            return res.status(404).json({ error: "Task not found" });
+        }
+
+        if (projectId !== undefined && projectId !== null) {
+            const projectOk = await taskService.projectExists(projectId);
+            if (!projectOk) {
+                return res.status(400).json({ error: "projectId does not refer to an existing project" });
+            }
+        }
+
+        const updatedTask = await taskService.updateTask(id, req.userId!, req.userRole!, {
             title,
             description,
             status,
@@ -79,7 +102,7 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
             assignedTo,
         });
         if (!updatedTask) {
-            return res.status(404).json({ error: "Task not found" });
+            return res.status(403).json({ error: "You do not have permission to modify this task" });
         }
         res.json(updatedTask);
     } catch (error) {
@@ -87,16 +110,23 @@ router.patch("/:id", async (req: AuthRequest, res: Response) => {
     }
 });
 
-// DELETE /tasks/:id
+// DELETE /tasks/:id ; only someone with access (project owner, project
+// member, the assignee, or an admin) can delete a task
 router.delete("/:id", async (req: AuthRequest, res: Response) => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid task ID format" });
     }
     try {
-        const deleted = await taskService.deleteTask(id, req.userId!);
-        if (!deleted) {
+        // Distinguish "does not exist" (404) from "exists but not allowed" (403)
+        const existing = await taskService.getTaskByIdAdmin(id);
+        if (!existing) {
             return res.status(404).json({ error: "Task not found" });
+        }
+
+        const deleted = await taskService.deleteTask(id, req.userId!, req.userRole!);
+        if (!deleted) {
+            return res.status(403).json({ error: "You do not have permission to delete this task" });
         }
         res.json({ message: "Task deleted successfully" });
     } catch (error) {

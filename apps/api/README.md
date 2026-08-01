@@ -4,7 +4,7 @@ This checkpoint expands the task API from Checkpoint 1 into a multi-user system.
 
 ## What Changed Since Checkpoint 1
 
-Added user registration and login with bcrypt password hashing. Added JWT tokens for authentication. Added projects with ownership rules. Tasks can now be linked to a project and assigned to a user. Added an admin role with access to user management routes. The API now returns correct 401, 403, and 404 responses depending on the situation. There are 31 automated tests total.
+Checkpoint 1 covered Milestone 1 through Milestone 3, a basic task API with full CRUD and database integration. This checkpoint builds on that. User registration and login were added with bcrypt password hashing. JWT tokens were added for authentication. Projects were added with ownership rules. Tasks can now be linked to a project and assigned to a user. Task updates and deletes now check that the user actually has access to that task, either as the project owner, a project member, or the assigned user. An admin role was added with access to user management routes. The API now returns correct 401, 403, and 404 responses depending on the situation. There are 37 automated tests total.
 
 ## Project Structure
 
@@ -118,7 +118,7 @@ cd apps/api
 npm test
 ```
 
-All 31 tests should pass.
+All 37 tests should pass.
 
 ## Routes
 
@@ -136,7 +136,7 @@ All 31 tests should pass.
 | Method | Route | What it does |
 |--------|-------|-------------|
 | GET | /tasks | Get tasks you can see |
-| POST | /tasks | Create a task |
+| POST | /tasks | Create a task (needs a real projectId) |
 | GET | /tasks/:id | Get one task |
 | PATCH | /tasks/:id | Update a task |
 | DELETE | /tasks/:id | Delete a task |
@@ -186,7 +186,7 @@ curl http://localhost:3000/tasks \
 
 ## Access Control
 
-Any logged in user can create projects and tasks. A user can only update or delete their own project. Only the project owner can add members. Admin users can update or delete any project and can access the user list. A regular user hitting an admin route gets 403. A request with no token or a bad token gets 401.
+Any logged in user can create projects and tasks. A user can only update or delete their own project. Tasks work the same way. You can only update or delete a task if you own the project it belongs to, you are a member of that project, or the task is assigned to you. If none of that applies, you get a 403 even if the task exists. Creating a task also needs a real projectId now, if the project does not exist you get a 400. Only the project owner can add members. Admin users can update or delete any project or task and can access the user list. A regular user hitting an admin route gets 403. A request with no token or a bad token gets 401.
 
 ## Database Schema
 
